@@ -1,0 +1,10 @@
+node_modules
+dist
+.git
+.env
+.env.*
+data
+artifacts
+*.sqlite*
+*.docx
+404_Grand_Prix_Codex_Prompt.txt

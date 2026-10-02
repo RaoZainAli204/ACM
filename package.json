@@ -1,0 +1,42 @@
+{
+  "name": "404-grand-prix",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "engines": { "node": ">=24 <25" },
+  "scripts": {
+    "dev": "concurrently -k -n server,client \"tsx watch --env-file-if-exists=.env server/index.ts\" \"vite --host 0.0.0.0\"",
+    "typecheck": "tsc --noEmit && tsc -p tsconfig.server.json --noEmit",
+    "build": "npm run typecheck && vite build && tsc -p tsconfig.server.json",
+    "start": "node --env-file-if-exists=.env dist/server/index.js",
+    "test": "tsx --test tests/*.test.ts",
+    "load-test": "tsx --env-file-if-exists=.env scripts/load-test.ts",
+    "rehearse": "tsx scripts/rehearse.ts",
+    "setup": "node scripts/setup.mjs",
+    "setup:production": "node scripts/setup-production.mjs"
+  },
+  "dependencies": {
+    "better-sqlite3": "12.4.1",
+    "cookie": "1.0.2",
+    "express": "5.1.0",
+    "qrcode": "1.5.4",
+    "react": "19.2.0",
+    "react-dom": "19.2.0",
+    "socket.io": "4.8.1",
+    "socket.io-client": "4.8.1"
+  },
+  "devDependencies": {
+    "@types/better-sqlite3": "7.6.13",
+    "@types/express": "5.0.5",
+    "@types/node": "24.10.1",
+    "@types/qrcode": "1.5.6",
+    "@types/react": "19.2.2",
+    "@types/react-dom": "19.2.2",
+    "@vitejs/plugin-react": "5.1.1",
+    "concurrently": "9.2.4",
+    "playwright": "1.56.1",
+    "tsx": "4.20.6",
+    "typescript": "5.9.3",
+    "vite": "7.3.6"
+  }
+}

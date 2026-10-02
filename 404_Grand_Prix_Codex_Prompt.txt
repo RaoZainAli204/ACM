@@ -1,0 +1,153 @@
+PROJECT AND INTERFACE
+Build a working web app called 404 Grand Prix for our tech society orientation on 2 October 2026. We have tonight to build, deploy and test it. Expect 90 to 100 first-semester students. The activity lasts 12 to 15 minutes. Implement the app in this workspace; do not stop at a plan or mockup.
+
+Use Node.js 24 LTS, npm, React with Vite and TypeScript, Express with TypeScript, Socket.IO, better-sqlite3, and simple CSS. Generate QR codes with a small QR library. Use one repository and one production Node process that serves the built frontend, API and sockets from the same origin. Use tsx for backend development. Pin compatible dependency versions and commit the lockfile.
+
+Prioritize working gameplay, authoritative scoring, persistence, reconnection and deployment before visual polish. Keep the implementation small. Do not add NestJS, microservices, Redis, an ORM, social login, AI integration or a question editor. Questions live in a private server-side seed file. Use local SVG artwork rather than external images or image generation.
+
+Player flow
+
+QR opens /join. Show a title page with society branding, 20 challenges, top 10 prizes and a Start Game button. That button opens a form for name and registration number, then joins a lobby. Explain the scoring before play. The organizer starts everyone together after registration; use five racing lights and a five-second countdown. Lock new registrations at race start.
+
+After the shared start, each player independently answers 20 questions, one at a time. Show four large answer buttons, question number, time remaining, score, rank and connection status. Lock an answer immediately and move to the next question after server acknowledgment. Never wait for a Next button. On timeout, record zero and advance. Finishing opens personal results and live standings.
+
+Projector and organizer screens
+
+At /display, show a large QR and participant count during the lobby. During the race show the top 15, highlighting prize positions 1 to 10. Columns: position, name, score, progress out of 20 and positions gained or lost. Animate row movement with simple CSS or a small animation library only if needed. Use a dark background, readable large text and green/red position indicators. Mark finished players. Never show registration numbers publicly.
+
+At /admin, require an organizer login. Provide participant count, open registration, start race, end and freeze results, display link, QR PNG download and CSV export. Creating a fresh event must preserve earlier results and require confirmation. At the finish show top three, then all 10 prize positions. Label live standings provisional and frozen standings final. Exact prize-cutoff ties must be flagged for an organizer-run tie-break.
+
+SERVER RULES AND FAIRNESS
+Timing and question order
+
+Questions 1 to 5 get 15 seconds each; 6 to 10 get 20 seconds; 11 to 15 get 25 seconds; 16 to 20 get 30 seconds. Total question allowance is 450 seconds. Set a global race deadline nine minutes after the countdown ends. Shuffle questions only within their five-question group and shuffle options per player. Persist the order and option IDs so refresh cannot change them.
+
+The server controls starts, question issue times and deadlines. Start the first question for all players at the scheduled race start. Issue the next question when the current answer is accepted. After a timeout, the next question starts at the expired deadline, even while the player is disconnected. On reconnect or restart, catch up elapsed questions as timeouts. A client cannot gain time by hiding the tab, delaying requests, refreshing or changing its clock. Load SVGs before the start.
+
+Scoring and results
+
+Give 100 points for a correct answer and zero for incorrect or timed-out answers. Maximum score is 2000. Sort by score descending, then total adjusted answer time ascending. A correct answer contributes server-measured elapsed time; an incorrect answer or timeout contributes its full time allowance. Use milliseconds internally. Exact ties share a competition rank; stable display ordering is not a sporting tie-break. If a tie crosses the top-10 cutoff, flag it and let the organizer settle it before gifts are awarded.
+
+Final prize eligibility requires reaching the end of all 20 questions; timeouts count as completed questions. Display unfinished status separately if the organizer ends the race early. Only the backend may change scores, deadlines or ranks. Accept answers only for the currently issued question, belonging to that player and event, within its server deadline. Never trust submitted score, time or rank.
+
+Persistence and access
+
+Use SQLite with WAL mode, short transactions, prepared statements and appropriate unique constraints. Persist events, participants, per-player question order, issue/deadline timestamps and answers. Normalize registration numbers by trimming and uppercasing; validate length and safe characters without assuming one semester prefix. Enforce one registration per event. Duplicate names are allowed. Validate and limit names, render them as text, and neutralize spreadsheet formulas in CSV exports.
+
+Give each player an unguessable session in a cookie, using HttpOnly and Secure in production. Duplicate registration attempts must not reveal another player session. Reloading in the same browser resumes through its existing cookie. Protect every organizer API and socket operation with server-side authentication. Keep secrets in environment variables. Apply sensible limits to joins, login attempts and answer requests; account for many students sharing one Wi-Fi IP.
+
+Record each answer atomically once using a unique event/player/question key. Save before acknowledging. Retry of the same request returns its saved receipt without adding points or advancing twice. On reconnect always fetch a fresh authoritative snapshot. Broadcast public standings at most once per second. Emit no answer keys, explanations, future questions, private IDs, cookies or registration numbers to public clients.
+
+Short timers, shuffled options and visual puzzles reduce convenient cheating, but do not claim the game is AI-proof. Do not disqualify players merely for tab switching. Reveal answer explanations after the event closes. Winners will have their registration numbers verified against student IDs.
+
+QUESTION BANK ONE
+Seed exactly these 20 questions with four options, the stated correct answer and a short explanation. The numbered order defines difficulty groups; options are shuffled at runtime. The seed file and keys must stay on the server.
+
+1. Which planet is known as the Red Planet?
+Options: Venus | Mars | Jupiter | Mercury. Correct: Mars.
+
+2. How many months have at least 28 days?
+Options: 1 | 2 | 11 | 12. Correct: 12.
+
+3. Which weighs more: 1 kg of iron or 1 kg of cotton?
+Options: Iron | Cotton | Equal | Depends on size. Correct: Equal.
+
+4. What day comes two days after Tuesday?
+Options: Wednesday | Thursday | Friday | Sunday. Correct: Thursday.
+
+5. Visual: Count only the triangles in this arrangement.
+Options: 2 | 3 | 4 | 5. Correct: 3. Draw exactly three triangles, four circles and two squares, without overlap. Vary sizes and rotations.
+
+6. You overtake the runner in second place. What position are you now?
+Options: First | Second | Third | Cannot tell. Correct: Second.
+
+7. An electric train travels north; wind blows west. Which direction does its smoke travel?
+Options: North | South | West | No smoke. Correct: No smoke.
+
+8. What is 8 + 8 divided by 4? Render as 8 + 8 ÷ 4.
+Options: 4 | 10 | 12 | 16. Correct: 10. Division is performed first.
+
+9. A farmer has 17 sheep. All but 9 die. How many remain alive?
+Options: 8 | 9 | 17 | 26. Correct: 9.
+
+10. Visual: How many squares are in this complete 2 by 2 grid?
+Options: 4 | 5 | 6 | 8. Correct: 5. Draw four equal cells in one square. Count four small squares and one large square.
+
+QUESTION BANK TWO
+11. Two fathers and two sons each eat one sandwich. Only three sandwiches are eaten. How many people are there?
+Options: 2 | 3 | 4 | 5. Correct: 3. They are a grandfather, father and son.
+
+12. Find the next number: 2, 6, 12, 20, ?
+Options: 26 | 28 | 30 | 32. Correct: 30. Differences increase as 4, 6, 8, 10.
+
+13. Visual: An arrow starts pointing up. Rotate it clockwise by 90°, 180°, 90°, then 180°. Where does it point?
+Options: Up | Right | Down | Left. Correct: Down. Draw the initial arrow and instructions; do not draw the solved arrow.
+
+14. A bat and ball cost Rs. 110 together. The bat costs Rs. 100 more than the ball. What does the ball cost?
+Options: Rs. 5 | Rs. 10 | Rs. 15 | Rs. 20. Correct: Rs. 5.
+
+15. Visual equations: Three circles = 12. One circle + two triangles = 10. One triangle + one square = 7. Find circle + triangle × square.
+Options: 16 | 20 | 28 | 40. Correct: 16. Circle = 4, triangle = 3, square = 4. Draw individual identical shapes and clear operators.
+
+16. A snail climbs a 10 m wall. Each day it climbs 3 m; each night it slips 2 m. On which day does it first reach the top?
+Options: 7 | 8 | 9 | 10. Correct: Day 8. It reaches the top before slipping again.
+
+17. Visual: How many rectangles, including squares, are in a complete grid with 2 rows and 3 columns?
+Options: 6 | 12 | 18 | 24. Correct: 18. Draw all boundaries. There are three choices of horizontal boundary pairs and six vertical pairs.
+
+18. Three boxes contain apples only, oranges only, or both. Their labels are all wrong. From which labeled box should you draw one fruit to identify every box?
+Options: Apples | Oranges | Mixed | Any box. Correct: Mixed. The Mixed box must contain only one fruit type.
+
+19. Cards show E, K, 4, 7. Each card has a letter on one side and a number on the other. To test the rule that every vowel has an even number on its reverse, which cards must you flip?
+Options: E and 4 | E and 7 | K and 4 | 4 and 7. Correct: E and 7. The odd number must not hide a vowel.
+
+20. Visual: On a grid of 3 rows and 3 columns, how many routes connect the top-left corner to the bottom-right corner along grid lines, moving only right or down?
+Options: 6 | 12 | 20 | 24. Correct: 20. Draw nine cells, start and finish at outer corners, and allowed directions. Every route consists of three right and three down moves.
+
+BUILD AND DEPLOYMENT
+Implementation order
+
+First inspect the workspace and respect existing files. In a new workspace create client, server and scripts folders with simple root npm scripts. Use one application architecture throughout. Implement a thin working vertical slice first: join, start, one question, answer, saved score, display and resume. Then add all questions, deadlines, administration and final results. Finally improve the race visuals. Report concise progress and blockers.
+
+Use npm run dev, npm run build, npm start, npm test and npm run load-test as root commands. npm run dev should start frontend and backend; proxy API and Socket.IO through Vite so cookies work. The production build must serve client routes correctly, including direct /display and /admin visits. Add GET /health. Persist schema and seed initialization safely at runtime; redeploying must not erase records or overwrite an active question bank.
+
+Use a countdown based on server time rather than a decrementing browser interval. Store the scheduled start and global end. Check due deadlines in a lightweight server scheduler and whenever a player resumes or submits. Keep the game state recoverable from the database. Ending and answer submission must serialize so no late mutation can change frozen results.
+
+Visual and QR requirements
+
+Create exact SVG illustrations for questions 5, 10, 13, 15, 17 and 20. Make SVGs readable at 360 px phone width. Use high contrast and do not rely only on color. Include accessible labels that describe the drawing without disclosing the solution. Use at least 44 px tap targets and a single-column phone layout. Keep sounds optional and off by default.
+
+Generate a normal black-and-white QR with a white quiet zone pointing to the public /join URL. Derive it from APP_BASE_URL, not localhost in production. Display the written URL below it and support PNG download. Changing the base URL must regenerate the QR. Do not use a paid dynamic QR service or add a logo that weakens scanning.
+
+Deployment preparation
+
+Prepare a working Dockerfile based on Node 24 and a Compose example for one service with a persistent /data mount. Include native dependency build tools if better-sqlite3 needs compilation, and use reproducible npm installation. Bind to 0.0.0.0 and process.env.PORT. Provide .env.example with PORT, APP_BASE_URL, DB_PATH=/data/race.sqlite, ADMIN_PASSWORD and SESSION_SECRET. Use a writable local data directory in development. Never commit real credentials or database records.
+
+Provide exact Railway deployment instructions: deploy GitHub repo or Dockerfile, configure secrets, attach a volume at /data, set the database path, generate an HTTPS domain, set APP_BASE_URL, and verify health, sockets and QR. Keep one replica and disable service sleeping for the event. Include a VPS Docker alternative if an existing server is available. Do not assume free hosting or promise capacity without testing.
+
+Prepare deployment fully. If hosting credentials and authorization are already available, deploy and test the real URL; otherwise identify the exact external step the user must complete. Never claim an app is deployed because it only runs locally. A temporary local-network setup is useful for rehearsal but must not be the public QR target unless venue networking has been verified.
+
+VERIFICATION AND HANDOFF
+Focused functional checks
+
+Run the build and type check. Add meaningful tests for exactly-once scoring, rejection of late or out-of-order answers, server-owned timing after refresh, protected organizer actions, and frozen results. Cover duplicate registration, wrong option IDs, forged score/time, and cookies belonging to a different participant. Check that keys, registration numbers and private session data never enter public payloads or the client bundle.
+
+Rehearse with several browser sessions: join and shared start, correct/wrong answers, timeouts, double tap, refresh, brief network loss, full finish, final freeze and CSV. Restart the backend during rehearsal and confirm persisted progress and deadlines are restored. Ensure the CSV safely handles names beginning with formula characters. Check visual question answers against the seed file.
+
+Load test
+
+Create a small socket.io-client load-test script targeting a configurable BASE_URL. Use an isolated test event and the normal registration, session and answer paths. Simulate 150 participants joining over 15 seconds, burst answer submissions, reconnects and all 20 questions. Verify expected scores independently, answer counts and no duplicate scoring. Use a test-only accelerated clock or configurable durations through organizer-authorized event creation; public clients must not control production timing.
+
+Report errors, accepted answer counts, acknowledgment p50/p95, public leaderboard delay and final score verification. Target p95 acknowledgment below one second and standings propagation below two seconds at the test load. Test the deployed service as well as local development. If the host has not been load-tested, state that clearly. Keep test data isolated and never delete real competition records. A server load test does not validate venue Wi-Fi.
+
+Required delivery
+
+Deliver working source code, private seed file with explanations, six SVGs, .env.example, lockfile, Dockerfile, Compose example, tests, load script and a concise README. The README must include Windows VS Code setup commands, local and production commands, deployment steps, QR creation, organizer instructions, how to create a fresh event, CSV export, restart recovery and a fallback procedure.
+
+Run the necessary checks once and fix actual failures. Avoid broad refactoring, repetitive test runs and extra features after acceptance checks pass. Finish with exact commands, local URLs, deployed URL if real, results of checks actually run, remaining manual actions and material limitations. Do not invent successful tests or deployment.
+
+Time budget and release rule
+
+Budget about 4 to 5 hours including testing. Aim to deploy the skeleton in the first 30 minutes, finish gameplay in 90 minutes, complete questions and display by 2.5 hours, then reserve at least one hour for verification. Cut optional animation and sound if time runs short. Preserve scoring, persistence, mobile usability and tests. Before presenting, test 5 to 10 real phones and scan the actual projected QR from the back of the room. If core checks fail, use the same questions as a team quiz in slides with manual scoring.
+
+Begin implementing now. Make routine choices yourself within this scope. Ask only for missing information that genuinely blocks an external action. Keep the work reviewable and report any unresolved issue plainly.

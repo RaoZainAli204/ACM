@@ -1,0 +1,14 @@
+import { createApp } from './app.js';
+const production = process.env.NODE_ENV === 'production';
+const baseUrl = process.env.APP_BASE_URL ?? 'http://localhost:3000';
+const password = process.env.ADMIN_PASSWORD; const secret = process.env.SESSION_SECRET;
+const minimumPasswordLength = production ? 12 : 6;
+if (!password || password.length < minimumPasswordLength || !secret || secret.length < 32 || password.startsWith('replace-') || secret.startsWith('replace-')) throw new Error(`Set ADMIN_PASSWORD (${minimumPasswordLength}+ characters) and SESSION_SECRET (32+ characters). For development run npm run setup.`);
+const url = new URL(baseUrl);
+if (production && (url.protocol !== 'https:' || ['localhost','127.0.0.1'].includes(url.hostname))) throw new Error('Production APP_BASE_URL must be the public HTTPS origin.');
+if (url.pathname !== '/' || url.search || url.hash) throw new Error('APP_BASE_URL must contain only an origin.');
+const service = createApp({ dbPath: process.env.DB_PATH ?? './data/race.sqlite', baseUrl: url.origin, password, secret, production, enableLoadTest: process.env.ENABLE_LOAD_TEST === 'true' });
+const port = Number(process.env.PORT ?? 3000);
+service.http.listen(port,'0.0.0.0',() => console.log(`404 Grand Prix listening on ${port}; join QR targets ${url.origin}/join`));
+let stopping = false;
+for (const signal of ['SIGINT','SIGTERM']) process.on(signal, async () => { if (stopping) return; stopping = true; await service.close(); process.exit(0); });
